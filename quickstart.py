@@ -20,6 +20,9 @@ from oauth2client import file, client, tools
 
 
 import base64
+import pandas as pd
+
+
 from email.mime.audio import MIMEAudio
 from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
@@ -33,9 +36,6 @@ from apiclient import errors
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/gmail.send']
 def main():
-    """Shows basic usage of the Sheets API.
-    Prints values from a sample spreadsheet.
-    """
     store = file.Storage('token.json')
     creds = store.get()
     if not creds or creds.invalid:
@@ -43,9 +43,6 @@ def main():
         creds = tools.run_flow(flow, store)
     service = build('sheets', 'v4', http=creds.authorize(Http()))
 
-
-    #majorDimension=COLUMNS&ranges=Daily+schedule!A16%3AH25&valueRenderOption=FORMATTED_VALUE&key={YOUR_API_KEY}
-    # Call the Sheets API
     SPREADSHEET_ID = "1DNsXDZshnpqbgEU0hrU0araJIfGHZ-eFij4smZBf05M"
     RANGE_NAME = 'Daily Schedule!A16:H25'
     result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID,
@@ -55,40 +52,34 @@ def main():
 
     if not values:
         print('No data found.')
-    else:
-        for col in values:
-            print(col)
 
+    df = pd.DataFrame(values[1:]).transpose()
+    df = df.set_index(pd.Index(values[0]))
+    dfmsg = df.to_html()
 
-    message_text = 'hallo'
+    template = """
+<html>
+<body>
+Hello.<br/>
+{table}
+</body></html>
+"""
+    message_text = template.format(table=dfmsg)
     service = build('gmail', 'v1', http=creds.authorize(Http()))
-
     
-    message = MIMEText(message_text)
+    message = MIMEText(message_text, _subtype='html')
     message['to'] = 'orm@mit.edu'
-    message['from'] = 'rimoll@gmail.com'
-    message['subject'] = 'sheets'
+    message['from'] = 'reminder-bot'
+    message['subject'] = 'MITRC reminder email'
     ret = {'raw': "".join(map(chr, base64.urlsafe_b64encode(message.as_string().encode('ascii'))))}
-    print(message.as_string())
-    print(message.as_string().encode('ascii'))
-    print(ret)
+
 
     try:
         message = (service.users().messages().send(userId='me', body=ret)
                                         .execute())
         print('Message Id: %s' % message['id'])
     except errors.HttpError as error:
-        print('An error occurred: %s' % error)
-          
-    # results = service.users().labels().list(userId='me').execute()
-    
-    # labels = results.get('labels', [])
-    # if not labels:
-    #     print('No labels found.')
-    # else:
-    #     print('Labels:')
-    #     for label in labels:
-    #         print(label['name'])
+        print('An error occurred: %s' % error)          
 
 if __name__ == '__main__':
     main()
