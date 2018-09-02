@@ -140,11 +140,11 @@ P.S. This full week's schedule is here:<br/>
     service = build('gmail', 'v1', http=creds.authorize(Http()))
     
     message = MIMEText(message_text, _subtype='html')
-    message['to'] = 'orm@mit.edu'
+    message['to'] = ','.join(['mitrc-active@mit.edu'])
     message['from'] = 'rowing-bot'
 
     friendly_date = '{day_name} {month_name} {day_number}'.format(day_name=row_ts.day_name(), month_name=row_ts.month_name(), day_number = row_ts.day)
-    message['subject'] = 'Rowing reminder for {friendly_date}'.format(friendly_date=friendly_date)
+    message['subject'] = 'Rowing reminder for {friendly_date} (Testing)'.format(friendly_date=friendly_date)
     ret = {'raw': "".join(map(chr, base64.urlsafe_b64encode(message.as_string().encode())))}
 
     try:
