@@ -31,28 +31,37 @@ import mimetypes
 import os
 
 from apiclient import errors
-import bs4
-
+from bs4 import BeautifulSoup
 
 def process_values(values):
     df = pd.DataFrame(values).transpose()
-    df = df.drop(1,axis=1).applymap(lambda x: None if x == 'empty' else x).dropna(axis=1)
+    df = df.drop(1,axis=1) #spurious axis
+    
+    df = df.applymap(lambda x: None if x == 'empty' else x) # handle empty
+    df = df[df.columns[~df.isna().apply(all,axis=0)]] ## filter fully empty columns
+    df = df.reset_index(drop=True)
     return df
 
 def render_table(df):
+    # make it look prettier:
+    df.loc[0:1,2] = df.loc[0:1,0] # pet peeve: show coach cox above number.
+    df.loc[0:1,0] = ''
+    df = df.fillna('')
+    
     table_styles = [dict(selector='', props=[('margin', 0), ('font-family', 'monospace')]),
              dict(selector='.row0', props=[('background-color', '#aaa')]),
             dict(selector='.row1', props=[('background-color', '#ccc')]),
-            dict(selector='tr:hover', props=[('background-color', '#ffff99')]),
+            dict(selector='.col1', props=[('background-color', '#ccc')]),
+                    dict(selector='tr:hover', props=[('background-color', '#ffff99')]),
                ]
     obj = df.style.set_table_styles(table_styles).hide_index()
     rend = obj.render(head='')
     
-    soup = bs4.BeautifulSoup(rend, 'html.parser')
+    soup = BeautifulSoup(rend, 'html.parser')
     stl = soup.find_all('style')[0]
     tab = soup.find_all('table')[0]
     
-    return stl,tab
+    return stl.__repr__(),tab.__repr__()
 
 
 # If modifying these scopes, delete the file token.json.
@@ -111,35 +120,28 @@ def main():
 <body>
 Hi everyone,<br/><br/>
  
-Here is the schedule for tomorrow.<br/><br/>
-
-Everyone listed below should be downstairs in the boathouse by 5:55 am, ready to be on the water at 6 am.  Please note that this is not a lineup.  The coaches will set the lineup in the morning, and may switch people between boats.
+Here is the schedule for tomorrow. Everyone listed below should be downstairs in the boathouse by 5:55 am, ready to be on the water at 6 am.  Please note that this is not a lineup.  The coaches will set the lineup in the morning, and may switch people between boats.
 <br/>
 <br/>
 Happy rowing and GO TECH!<br/>
--Your friendly reminder bot.<br/>
+-Your friendly rowing bot.<br/>
 <br/>
 {table}
 <br/>
 <br/>
-P.S. The full week's schedule can be found here:<br/>
+P.S. This full week's schedule is here:<br/>
 {sheet_url}<br/><br/>
 
 </body>
 </html>
 """
-
-    # stl = '<style type="text/css">\n    #T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9  {\n          margin: 0;\n          font-family: monospace;\n    }    #T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9 .row0 {\n          background-color: #aaa;\n    }    #T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9 .row1 {\n          background-color: #ccc;\n    }    #T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9 tr:hover {\n          background-color: #ffff99;\n    }</style>'
-
-    # tab = '<table id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9">\n<thead> <tr>\n<th class="col_heading level0 col0">0</th>\n<th class="col_heading level0 col1">2</th>\n<th class="col_heading level0 col2">3</th>\n<th class="col_heading level0 col3">4</th>\n<th class="col_heading level0 col4">7</th>\n</tr></thead>\n<tbody> <tr>\n<td class="data row0 col0" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row0_col0">coach</td>\n<td class="data row0 col1" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row0_col1">*</td>\n<td class="data row0 col2" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row0_col2">John Cotter</td>\n<td class="data row0 col3" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row0_col3">Andre Bastos</td>\n<td class="data row0 col4" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row0_col4">Glenn Beauchemin</td>\n</tr> <tr>\n<td class="data row1 col0" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row1_col0">cox</td>\n<td class="data row1 col1" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row1_col1"></td>\n<td class="data row1 col2" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row1_col2">Jayanth Uppaluri</td>\n<td class="data row1 col3" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row1_col3">Andrew Cunningham</td>\n<td class="data row1 col4" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row1_col4">Ryan Bellmore</td>\n</tr> <tr>\n<td class="data row2 col0" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row2_col0">Tuesday</td>\n<td class="data row2 col1" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row2_col1">1</td>\n<td class="data row2 col2" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row2_col2">Anita Chandrahas</td>\n<td class="data row2 col3" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row2_col3">Audrey Bazerghi</td>\n<td class="data row2 col4" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row2_col4">Yang Dai</td>\n</tr> <tr>\n<td class="data row3 col0" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row3_col0">Tuesday</td>\n<td class="data row3 col1" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row3_col1">2</td>\n<td class="data row3 col2" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row3_col2">Joleen Heiderich</td>\n<td class="data row3 col3" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row3_col3">Shijie Gu</td>\n<td class="data row3 col4" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row3_col4">Juan Pablo Duarte Pardo</td>\n</tr> <tr>\n<td class="data row4 col0" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row4_col0">Tuesday</td>\n<td class="data row4 col1" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row4_col1">3</td>\n<td class="data row4 col2" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row4_col2">Mary Kate Manhard</td>\n<td class="data row4 col3" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row4_col3">Richard McWalter</td>\n<td class="data row4 col4" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row4_col4">Marco Lucente</td>\n</tr> <tr>\n<td class="data row5 col0" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row5_col0">Tuesday</td>\n<td class="data row5 col1" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row5_col1">4</td>\n<td class="data row5 col2" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row5_col2">Jim Serdy </td>\n<td class="data row5 col3" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row5_col3">Will Suter</td>\n<td class="data row5 col4" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row5_col4">Leandro Araujo</td>\n</tr> <tr>\n<td class="data row6 col0" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row6_col0">Tuesday</td>\n<td class="data row6 col1" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row6_col1">5</td>\n<td class="data row6 col2" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row6_col2">Kevin Sitek</td>\n<td class="data row6 col3" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row6_col3">Yongjin Park</td>\n<td class="data row6 col4" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row6_col4">Elisa Carmo</td>\n</tr> <tr>\n<td class="data row7 col0" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row7_col0">Tuesday</td>\n<td class="data row7 col1" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row7_col1">6</td>\n<td class="data row7 col2" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row7_col2">Gowtham Thakku</td>\n<td class="data row7 col3" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row7_col3">Arno Schneuwly</td>\n<td class="data row7 col4" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row7_col4">Nick Yerin</td>\n</tr> <tr>\n<td class="data row8 col0" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row8_col0">Tuesday</td>\n<td class="data row8 col1" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row8_col1">7</td>\n<td class="data row8 col2" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row8_col2">Ruizhi (Ray) Liao</td>\n<td class="data row8 col3" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row8_col3">Luzi Sennhauser</td>\n<td class="data row8 col4" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row8_col4">Leonardo Aguiar</td>\n</tr> <tr>\n<td class="data row9 col0" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row9_col0">Tuesday</td>\n<td class="data row9 col1" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row9_col1">8</td>\n<td class="data row9 col2" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row9_col2">Christine Kerney-Slocombe</td>\n<td class="data row9 col3" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row9_col3">Sarah Trice</td>\n<td class="data row9 col4" id="T_dd819d8c_ad66_11e8_8ed9_3497f65a40f9row9_col4">Marien Kamal</td>\n</tr></tbody>\n</table>'
-
     sheet_url = '{base_link}&range={cell_range}'.format(base_link=SPREADSHEET_LINK, cell_range=cell_range)
     message_text = template.format(sheet_url=sheet_url, table=tab, style=stl)
     service = build('gmail', 'v1', http=creds.authorize(Http()))
     
     message = MIMEText(message_text, _subtype='html')
     message['to'] = 'orm@mit.edu'
-    message['from'] = 'reminder-bot'
+    message['from'] = 'rowing-bot'
 
     friendly_date = '{day_name} {month_name} {day_number}'.format(day_name=row_ts.day_name(), month_name=row_ts.month_name(), day_number = row_ts.day)
     message['subject'] = 'Rowing reminder for {friendly_date}'.format(friendly_date=friendly_date)
