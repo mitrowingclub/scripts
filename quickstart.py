@@ -20,7 +20,9 @@ import os
 from apiclient import errors
 from bs4 import BeautifulSoup
 
-test_mode = True
+import argparse
+
+
 
 def process_values(values):
     df = pd.DataFrame(values).transpose()
@@ -57,25 +59,45 @@ def render_table(df):
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/gmail.send']
 
 # If using new spreadsheet, update these two.
-SPREADSHEET_ID = '1aLL8X_e5uLGVcoVuqmxuQVMLBR1cvphnX3Qar1lG9T4'
-SPREADSHEET_LINK= 'https://docs.google.com/spreadsheets/d/{sid}/edit#gid=1189084842'.format(sid=SPREADSHEET_ID)
-
-
-def get_cell_range(ts):
-    ''' use the timestamp for the day you want, not for the email day'''
-    
-    K_LENGTH = 10
-    K_START = 6
-
-    start = K_START + ts.dayofweek*K_LENGTH ## eg. Monday => dayofweek=0 => answer=A6:H15
-    end = start + K_LENGTH - 1
-    return 'A{start}:H{end}'.format(start=start, end=end)
-
 
 def main():
+    parser = argparse.ArgumentParser(description='Send reminder email based on spreadsheet')
+    parser.add_argument('--TEST_MODE', default=False, type=bool, help='whether to run as test (add disclaimer, send to personal email')
+    parser.add_argument('--LTR', default=False, type=bool, help='send email based on LTR lineup (as opposed to normal lineup)')
+    args = parser.parse_args()
+
+    if not args.LTR:
+        DAYS = {a:b for (a,b) in zip(range(5),range(5))} # M-F
+        K_LENGTH = 10
+        COL_END = 'H'
+        K_START = 6
+        SHEET = 'Daily schedule'
+        GID = 1189084842
+        TO=['mitrc-active@mit.edu']
+    else:
+        DAYS = {2:0,4:1} # Wednesday/Friday
+        COL_END = 'E'
+        K_LENGTH = 15
+        K_START = 6
+        SHEET = 'LTR Daily Schedule'
+        GID = 463043139
+        TO=['mitrc-ltr@mit.edu','glennbeau@comcast.net']
+
+
+    SPREADSHEET_ID = '1aLL8X_e5uLGVcoVuqmxuQVMLBR1cvphnX3Qar1lG9T4'
+    SPREADSHEET_LINK= 'https://docs.google.com/spreadsheets/d/{sid}/edit#gid={gid}'.format(sid=SPREADSHEET_ID, gid=GID)
+
+    def get_cell_range(ts):
+        ''' use the timestamp for the day you want, not for the email day'''
+        idx = DAYS[ts.dayofweek]
+        start = K_START + idx*K_LENGTH ## eg. Monday => dayofweek=0 => answer=A6:H15
+        end = start + K_LENGTH - 1
+        return 'A{start}:{col_end}{end}'.format(start=start, col_end=COL_END, end=end)
+
+
     curr_ts = pd.Timestamp.today(tz='EST')
     row_ts = curr_ts + pd.to_timedelta('1 day')
-    if row_ts.dayofweek not in range(0,5):
+    if row_ts.dayofweek not in DAYS.keys():
         print('no need to send reminder right now: ', curr_ts)
         return 0
     
@@ -88,7 +110,7 @@ def main():
 
 
     cell_range= get_cell_range(row_ts)
-    range_name = 'Daily schedule!{cell_range}'.format(cell_range=cell_range)
+    range_name = '{sheet}!{cell_range}'.format(sheet=SHEET, cell_range=cell_range)
     
     result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID,
                                                  majorDimension='COLUMNS',
@@ -111,7 +133,9 @@ def main():
 {test_disclaimer}<br/>
 Hi rowers,<br/><br/>
  
-Here is the schedule for tomorrow. Everyone listed below should be downstairs in the boathouse by 5:55 am, ready to be on the water at 6. Note that coaches will set the lineup in the morning, and may switch people between boats.
+Here are the names of people scheduled to row tomorrow. Note that the exact lineups within boats will be decided by the coaches at the boathouse.
+
+(for LTR lineups: the first column is the 6AM class the second one is the 7AM class.)
 <br/>
 <br/>
 Happy rowing and GO TECH!<br/>
@@ -124,24 +148,25 @@ Happy rowing and GO TECH!<br/>
 This week's schedule in full is here:<br/>
 {sheet_url}<br/><br/>
 
-P.S Issues with this email? In that case, reply-all.<br/>
+P.S Issues with this email? In that case, reply to orm@csail.mit.edu<br/>
+
 
 </body>
 </html>
 """
     sheet_url = '{base_link}&range={cell_range}'.format(base_link=SPREADSHEET_LINK, cell_range=cell_range)
-    message_text = template.format(sheet_url=sheet_url, table=tab, style=stl, test_disclaimer='(this email is a test, pls ignore)' if test_mode else '')
+    message_text = template.format(sheet_url=sheet_url, table=tab, style=stl, test_disclaimer='(this email is a test, pls ignore)' if args.TEST_MODE else '')
     service = build('gmail', 'v1', http=creds.authorize(Http()))
     
     message = MIMEText(message_text, _subtype='html')
 
-    to_list = ['orm@mit.edu'] if test_mode else  ['mitrc-active@mit.edu']
+    to_list = ['orm@mit.edu'] if args.TEST_MODE else TO
     message['to'] = ','.join(to_list)
     message['cc'] = ','.join(['mitrc.schedule@gmail.com'])
     message['from'] = 'rowing-bot'
 
     friendly_date = '{day_name} {month_name} {day_number}'.format(day_name=row_ts.day_name(), month_name=row_ts.month_name(), day_number = row_ts.day)
-    message['subject'] = 'Rowing reminder for {friendly_date}{test_mode}'.format(friendly_date=friendly_date, test_mode='(Test email)' if test_mode else '')
+    message['subject'] = '{is_ltr}Rowing reminder for {friendly_date}{test_mode}'.format(friendly_date=friendly_date, is_ltr='(LTR) ' if args.LTR else '', test_mode=' (Test email)' if args.TEST_MODE else '')
     ret = {'raw': "".join(map(chr, base64.urlsafe_b64encode(message.as_string().encode())))}
 
     try:
