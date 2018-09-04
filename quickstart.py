@@ -1,23 +1,10 @@
-# Copyright 2018 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright 2018 MITRC ;)
+# MIT license.
 
-# [START sheets_quickstart]
 from __future__ import print_function
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
-
 
 import base64
 import pandas as pd
@@ -77,7 +64,7 @@ def get_cell_range(ts):
     K_LENGTH = 10
     K_START = 6
 
-    start = K_START + ts.dayofweek*K_LENGTH ## eg. Monday => dayofweek=0 => A6:H25
+    start = K_START + ts.dayofweek*K_LENGTH ## eg. Monday => dayofweek=0 => answer=A6:H15
     end = start + K_LENGTH - 1
     return 'A{start}:H{end}'.format(start=start, end=end)
 
