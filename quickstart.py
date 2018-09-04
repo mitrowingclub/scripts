@@ -1,5 +1,5 @@
 # Copyright 2018 MITRC ;)
-# MIT license.
+# MIT license
 
 from __future__ import print_function
 from googleapiclient.discovery import build
@@ -19,6 +19,8 @@ import os
 
 from apiclient import errors
 from bs4 import BeautifulSoup
+
+test_mode = True
 
 def process_values(values):
     df = pd.DataFrame(values).transpose()
@@ -55,8 +57,9 @@ def render_table(df):
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/gmail.send']
 
 # If using new spreadsheet, update these two.
-SPREADSHEET_LINK = 'https://docs.google.com/spreadsheets/d/1UFnIaGDa4bUm1Dm1b5ETeLt3n4uS-mg6RPmVcJclCKY/edit#gid=1189084842'
-SPREADSHEET_ID = "1UFnIaGDa4bUm1Dm1b5ETeLt3n4uS-mg6RPmVcJclCKY" 
+SPREADSHEET_ID = '1aLL8X_e5uLGVcoVuqmxuQVMLBR1cvphnX3Qar1lG9T4'
+SPREADSHEET_LINK= 'https://docs.google.com/spreadsheets/d/{sid}/edit#gid=1189084842'.format(sid=SPREADSHEET_ID)
+
 
 def get_cell_range(ts):
     ''' use the timestamp for the day you want, not for the email day'''
@@ -105,9 +108,10 @@ def main():
 {style}
 </head>
 <body>
-Hi everyone,<br/><br/>
+{test_disclaimer}<br/>
+Hi rowers,<br/><br/>
  
-Here is the schedule for tomorrow. Everyone listed below should be downstairs in the boathouse by 5:55 am, ready to be on the water at 6 am.  Please note that this is not a lineup.  The coaches will set the lineup in the morning, and may switch people between boats.
+Here is the schedule for tomorrow. Everyone listed below should be downstairs in the boathouse by 5:55 am, ready to be on the water at 6. Note that coaches will set the lineup in the morning, and may switch people between boats.
 <br/>
 <br/>
 Happy rowing and GO TECH!<br/>
@@ -116,22 +120,28 @@ Happy rowing and GO TECH!<br/>
 {table}
 <br/>
 <br/>
-P.S. This full week's schedule is here:<br/>
+
+This week's schedule in full is here:<br/>
 {sheet_url}<br/><br/>
+
+P.S Issues with this email? In that case, reply-all.<br/>
 
 </body>
 </html>
 """
     sheet_url = '{base_link}&range={cell_range}'.format(base_link=SPREADSHEET_LINK, cell_range=cell_range)
-    message_text = template.format(sheet_url=sheet_url, table=tab, style=stl)
+    message_text = template.format(sheet_url=sheet_url, table=tab, style=stl, test_disclaimer='(this email is a test, pls ignore)' if test_mode else '')
     service = build('gmail', 'v1', http=creds.authorize(Http()))
     
     message = MIMEText(message_text, _subtype='html')
-    message['to'] = ','.join(['mitrc-active@mit.edu'])
+
+    to_list = ['orm@mit.edu'] if test_mode else  ['mitrc-active@mit.edu']
+    message['to'] = ','.join(to_list)
+    message['cc'] = ','.join(['mitrc.schedule@gmail.com'])
     message['from'] = 'rowing-bot'
 
     friendly_date = '{day_name} {month_name} {day_number}'.format(day_name=row_ts.day_name(), month_name=row_ts.month_name(), day_number = row_ts.day)
-    message['subject'] = 'Rowing reminder for {friendly_date} (Testing)'.format(friendly_date=friendly_date)
+    message['subject'] = 'Rowing reminder for {friendly_date}{test_mode}'.format(friendly_date=friendly_date, test_mode='(Test email)' if test_mode else '')
     ret = {'raw': "".join(map(chr, base64.urlsafe_b64encode(message.as_string().encode())))}
 
     try:
