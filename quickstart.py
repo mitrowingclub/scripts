@@ -160,10 +160,10 @@ P.S Issues with this email? In that case, reply to orm@csail.mit.edu<br/>
     
     message = MIMEText(message_text, _subtype='html')
 
-    to_list = ['orm@mit.edu'] if args.TEST_MODE else TO
+    to_list = ['orm@mit.edu'] if args.TEST_MODE else (TO + ['mitrc.schedule@gmail.com'])
     message['to'] = ','.join(to_list)
-    message['cc'] = ','.join(['mitrc.schedule@gmail.com'])
     message['from'] = 'rowing-bot'
+    # message['bcc'] = 'mitrc.officers@mit.edu'
 
     friendly_date = '{day_name} {month_name} {day_number}'.format(day_name=row_ts.day_name(), month_name=row_ts.month_name(), day_number = row_ts.day)
     message['subject'] = '{is_ltr}Rowing reminder for {friendly_date}{test_mode}'.format(friendly_date=friendly_date, is_ltr='(LTR) ' if args.LTR else '', test_mode=' (Test email)' if args.TEST_MODE else '')
