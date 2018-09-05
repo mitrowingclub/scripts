@@ -62,8 +62,8 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.
 
 def main():
     parser = argparse.ArgumentParser(description='Send reminder email based on spreadsheet')
-    parser.add_argument('--TEST_MODE', default=False, type=bool, help='whether to run as test (add disclaimer, send to personal email')
-    parser.add_argument('--LTR', default=False, type=bool, help='send email based on LTR lineup (as opposed to normal lineup)')
+    parser.add_argument('--TEST_MODE', action='store_true', help='whether to run as test (send to personal email)')
+    parser.add_argument('--LTR', action='store_true', help='send email based on LTR lineup (as opposed to normal lineup)')
     args = parser.parse_args()
 
     if not args.LTR:

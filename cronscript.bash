@@ -8,4 +8,4 @@ cd /home/orm/read_sheet/
 python quickstart.py
 
 # send LTR reminder
-python quickstart.py --LTR=True
+python quickstart.py --LTR
