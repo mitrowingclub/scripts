@@ -70,7 +70,7 @@ def main():
     if not args.LTR:
         DAYS = {a:b for (a,b) in zip(range(5),range(5))} # M-F
         K_LENGTH = 10
-        COL_END = 'H'
+        COL_END = 'G'
         K_START = 6
         SHEET = 'Daily schedule'
         GID = 1189084842
@@ -136,7 +136,6 @@ Hi rowers,<br/><br/>
  
 Here are the names of people scheduled to row tomorrow. Note that the exact lineups within boats will be decided by the coaches at the boathouse.
 
-(for LTR lineups: the first column is the 6AM class the second one is the 7AM class.)
 <br/>
 <br/>
 Happy rowing and GO TECH!<br/>
