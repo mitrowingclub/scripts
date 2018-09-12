@@ -29,7 +29,7 @@ def process_values(values):
     df = pd.DataFrame(values).transpose()
     df = df.drop(1,axis=1) #spurious axis
     
-    df = df.applymap(lambda x: None if x == 'empty' else x) # handle empty
+    df = df.applymap(lambda x: None if x == 'empty' or x == '' else x) # handle empty
     df = df[df.columns[~df.isna().apply(all,axis=0)]] ## filter fully empty columns
     df = df.reset_index(drop=True)
     return df
@@ -77,12 +77,12 @@ def main():
         TO=['mitrc-active@mit.edu']
     else:
         DAYS = {2:0,4:1} # Wednesday/Friday
-        COL_END = 'E'
+        COL_END = 'F'
         K_LENGTH = 15
         K_START = 6
         SHEET = 'LTR Daily Schedule'
         GID = 463043139
-        TO=['mitrc-ltr@mit.edu','glennbeau@comcast.net']
+        TO=['mitrc-ltr@mit.edu','mitrc-active@mit.edu', 'glennbeau@comcast.net']
 
 
     SPREADSHEET_ID = '1aLL8X_e5uLGVcoVuqmxuQVMLBR1cvphnX3Qar1lG9T4'
