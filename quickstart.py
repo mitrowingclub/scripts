@@ -162,7 +162,6 @@ P.S Issues with this email? In that case, reply to orm@csail.mit.edu<br/>
 
     to_list = ['orm@mit.edu'] if args.TEST_MODE else (TO + ['mitrc.schedule@gmail.com'])
     message['to'] = ','.join(to_list)
-    message['from'] = 'rowing-bot'
     # message['bcc'] = 'mitrc.officers@mit.edu'
 
     friendly_date = '{day_name} {month_name} {day_number}'.format(day_name=row_ts.day_name(), month_name=row_ts.month_name(), day_number = row_ts.day)
