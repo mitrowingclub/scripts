@@ -148,7 +148,9 @@ Happy rowing and GO TECH!<br/>
 This week's schedule in full is here:<br/>
 {sheet_url}<br/><br/>
 
-P.S Issues with this email? In that case, reply to orm@csail.mit.edu<br/>
+P.S. <br/>
+Issues with the line-up? In that case, reply to mitrc.schedule@gmail.com<br/>
+Issues with the email? In that case, reply to rimoll@gmail.com<br/>
 
 
 </body>
