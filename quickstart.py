@@ -73,19 +73,21 @@ def main():
         COL_END = 'G'
         K_START = 6
         SHEET = 'Daily schedule'
-        GID = 1189084842
-        TO=['mitrc-active@mit.edu']
+        #GID = 1189084842
+        #TO=['mitrc-active@mit.edu']
+        GID = 0
     else:
         DAYS = {2:0,4:1} # Wednesday/Friday
         COL_END = 'F'
-        K_LENGTH = 15
+        K_LENGTH = 14
         K_START = 6
         SHEET = 'LTR Daily Schedule'
-        GID = 463043139
-        TO=['mitrc-ltr@mit.edu','mitrc-active@mit.edu', 'glennbeau@comcast.net']
+        #GID = 463043139
+        #TO=['mitrc-ltr@mit.edu','mitrc-active@mit.edu', 'glennbeau@comcast.net']
+        GID = 0
+    TO=[]
 
-
-    SPREADSHEET_ID = '1aLL8X_e5uLGVcoVuqmxuQVMLBR1cvphnX3Qar1lG9T4'
+    SPREADSHEET_ID = '1QzHmzDO9T3sndExFtJ3Pyk_hzFJddGt1ahPIjQXZGCs'
     SPREADSHEET_LINK= 'https://docs.google.com/spreadsheets/d/{sid}/edit#gid={gid}'.format(sid=SPREADSHEET_ID, gid=GID)
 
     def get_cell_range(ts):
@@ -105,7 +107,7 @@ def main():
     store = file.Storage('token.json')
     creds = store.get()
     if not creds or creds.invalid:
-        flow = client.flow_from_clientsecrets('credentials.json', SCOPES)
+        flow = client.flow_from_clientsecrets('client_secret_241639964710-2c1vfpe75d0tli34iktut2buo1gdi39r.apps.googleusercontent.com.json', SCOPES)
         creds = tools.run_flow(flow, store)
     service = build('sheets', 'v4', http=creds.authorize(Http()))
 
@@ -124,50 +126,134 @@ def main():
 
     df = process_values(values) 
     stl,tab = render_table(df)
+
+    if row_ts.dayofweek == 2 or row_ts.dayofweek == 4:
+        DAYS = {2:0,4:1} # Wednesday/Friday
+        COL_END = 'F'
+        K_LENGTH = 14
+        K_START = 6
+        SHEET = 'LTR Daily Schedule'
+
+        def get_cell_range(ts):
+            ''' use the timestamp for the day you want, not for the email day'''
+            idx = DAYS[ts.dayofweek]
+            start = K_START + idx*K_LENGTH ## eg. Monday => dayofweek=0 => answer=A6:H15
+            end = start + K_LENGTH - 1
+            return 'A{start}:{col_end}{end}'.format(start=start, col_end=COL_END, end=end)
+
+        curr_ts = pd.Timestamp.today(tz='EST')
+        row_ts = curr_ts + pd.to_timedelta('1 day')
+
+        cell_range= get_cell_range(row_ts)
+        range_name = '{sheet}!{cell_range}'.format(sheet=SHEET, cell_range=cell_range)
     
-    template = """
+        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID,
+                                                     majorDimension='COLUMNS',
+                                                     range=range_name).execute()
+        values = result.get('values', [])
+        print(values)
+
+        if not values:
+            print('No data found.')
+
+        df = process_values(values) 
+        stl_ltr,tab_ltr = render_table(df)
+
+    if row_ts.dayofweek != 2 and row_ts.dayofweek != 4:
+
+        template = """
 <html>
 <head>
 {style}
 </head>
 <body>
 {test_disclaimer}<br/>
-Hi rowers,<br/><br/>
+Hi everyone,<br/><br/>
  
-Here are the names of people scheduled to row tomorrow. Note that the exact lineups within boats will be decided by the coaches at the boathouse.
+The schedule for tomorrow, {friendly_date}, is below. The full week's schedule can be found here:<br/><br/>
+
+{sheet_url}<br/><br/>
+
+Everyone listed below should be downstairs in the boathouse by 5:55 am, ready to be on the water at 6am. 
+Please note that this is not a lineup. The coaches will set the lineup in the morning, and may switch people between boats.
 
 <br/>
-<br/>
-Happy rowing and GO TECH!<br/>
--Your friendly rowing bot.<br/>
 <br/>
 {table}
 <br/>
 <br/>
 
-This week's schedule in full is here:<br/>
-{sheet_url}<br/><br/>
+Happy rowing and GO TECH!<br/>
+-Your friendly MITRC bot<br/><br/>
 
-P.S. <br/>
-Issues with the line-up? In that case, reply to mitrc.schedule@gmail.com<br/>
-Issues with the email? In that case, reply to rimoll@gmail.com<br/>
+This is an auto-generated email. Contact ruizhi@mit.edu if you have trouble viewing this email. Contact mitrc.schedule@gmail.com if you have any questions about the schedule.<br/><br/>
 
+MITRC is on Instagram: https://www.instagram.com/mitrowingclub/ and Facebook: https://www.facebook.com/mitrowingclub/ <br/><br/>
+
+Be friends outsides rowing? Join MITRC WhatsApp chat: https://chat.whatsapp.com/5Hvfdpxpcl87V3iARcMCWs
 
 </body>
 </html>
 """
+
+    else:
+        template = """
+<html>
+<head>
+{style}
+{stl_ltr}
+</head>
+<body>
+{test_disclaimer}<br/>
+Hi everyone,<br/><br/>
+ 
+The schedule for tomorrow, {friendly_date}, is below. The full week's schedule can be found here:<br/><br/>
+
+{sheet_url}<br/><br/>
+
+Everyone listed below should be downstairs in the boathouse by 5:55 am, ready to be on the water at 6am. 
+Please note that this is not a lineup. The coaches will set the lineup in the morning, and may switch people between boats.
+
+<br/>
+<br/>
+{table_ltr}
+<br/>
+<br/>
+{table}
+<br/>
+<br/>
+
+Happy rowing and GO TECH!<br/>
+-Your friendly MITRC bot<br/><br/>
+
+This is an auto-generated email. Contact ruizhi@mit.edu if you have trouble viewing this email. Contact mitrc.schedule@gmail.com if you have any questions about the schedule.<br/><br/>
+
+MITRC is on Instagram: https://www.instagram.com/mitrowingclub/ and Facebook: https://www.facebook.com/mitrowingclub/ <br/><br/>
+
+Be friends outsides rowing? Join MITRC WhatsApp chat: https://chat.whatsapp.com/5Hvfdpxpcl87V3iARcMCWs
+
+</body>
+</html>
+"""
+
     sheet_url = '{base_link}&range={cell_range}'.format(base_link=SPREADSHEET_LINK, cell_range=cell_range)
-    message_text = template.format(sheet_url=sheet_url, table=tab, style=stl, test_disclaimer='(this email is a test, pls ignore)' if args.TEST_MODE else '')
+    friendly_date = '{day_name} {month_name} {day_number}'.format(day_name=row_ts.day_name(), month_name=row_ts.month_name(), day_number = row_ts.day)
+
+    if row_ts.dayofweek == 2 or row_ts.dayofweek == 4:
+        message_text = template.format(sheet_url=sheet_url, table=tab, table_ltr=tab_ltr, style=stl, stl_ltr=stl_ltr, friendly_date=friendly_date, test_disclaimer='(this email is a test, pls ignore)' if args.TEST_MODE else '')
+    else:
+        message_text = template.format(sheet_url=sheet_url, table=tab, style=stl, friendly_date=friendly_date, test_disclaimer='(this email is a test, pls ignore)' if args.TEST_MODE else '')
+
     service = build('gmail', 'v1', http=creds.authorize(Http()))
     
     message = MIMEText(message_text, _subtype='html')
 
-    to_list = ['orm@mit.edu'] if args.TEST_MODE else (TO + ['mitrc.schedule@gmail.com'])
+    #to_list = ['orm@mit.edu'] if args.TEST_MODE else (TO + ['mitrc.schedule@gmail.com'])
+    to_list = ['orm@mit.edu'] if args.TEST_MODE else (TO + ['ruizhi@mit.edu'])
     message['to'] = ','.join(to_list)
     # message['bcc'] = 'mitrc.officers@mit.edu'
 
-    friendly_date = '{day_name} {month_name} {day_number}'.format(day_name=row_ts.day_name(), month_name=row_ts.month_name(), day_number = row_ts.day)
-    message['subject'] = '{is_ltr}Rowing reminder for {friendly_date}{test_mode}'.format(friendly_date=friendly_date, is_ltr='(LTR) ' if args.LTR else '', test_mode=' (Test email)' if args.TEST_MODE else '')
+    message['subject'] = '{is_ltr}[MITRC] Daily reminder for {friendly_date}{test_mode}'.format(friendly_date=friendly_date, is_ltr='(LTR) ' if args.LTR else '', test_mode=' (Test email)' if args.TEST_MODE else '')
     ret = {'raw': "".join(map(chr, base64.urlsafe_b64encode(message.as_string().encode())))}
 
     try:
