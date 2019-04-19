@@ -270,7 +270,9 @@ Be friends outside rowing? Join MITRC WhatsApp chat: https://chat.whatsapp.com/5
         print('An error occurred: %s' % error)          
 
 
-next_start = datetime.datetime(2019, 4, 19, 16, 0, 0)
+next_start = datetime.today()
+#next_start = datetime.datetime(2019, 4, 19, 16, 0, 0)
+next_start=next_start.replace(day=next_start.day, hour=16, minute=0, second=0, microsecond=0)
 while True:
     dtn = datetime.datetime.now()
 
