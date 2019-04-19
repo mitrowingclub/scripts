@@ -23,6 +23,9 @@ from bs4 import BeautifulSoup
 
 import argparse
 
+import datetime
+import time
+
 
 
 def process_values(values):
@@ -61,13 +64,16 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.
 
 # If using new spreadsheet, update these two.
 
-def main():
-    parser = argparse.ArgumentParser(description='Send reminder email based on spreadsheet')
-    parser.add_argument('--TEST_MODE', action='store_true', help='whether to run as test (send to personal email)')
-    parser.add_argument('--LTR', action='store_true', help='send email based on LTR lineup (as opposed to normal lineup)')
-    args = parser.parse_args()
+def send_reminder():
+    # parser = argparse.ArgumentParser(description='Send reminder email based on spreadsheet')
+    # parser.add_argument('--TEST_MODE', action='store_true', help='whether to run as test (send to personal email)')
+    # parser.add_argument('--LTR', action='store_true', help='send email based on LTR lineup (as opposed to normal lineup)')
+    # args = parser.parse_args()
 
-    if not args.LTR:
+    TEST_MODE = False
+    LTR = False
+
+    if not LTR:
         DAYS = {a:b for (a,b) in zip(range(5),range(5))} # M-F
         K_LENGTH = 10
         COL_END = 'G'
@@ -79,13 +85,13 @@ def main():
     else:
         DAYS = {2:0,4:1} # Wednesday/Friday
         COL_END = 'F'
-        K_LENGTH = 14
+        K_LENGTH = 16
         K_START = 6
         SHEET = 'LTR Daily Schedule'
         #GID = 463043139
         #TO=['mitrc-ltr@mit.edu','mitrc-active@mit.edu', 'glennbeau@comcast.net']
         GID = 0
-    TO=[]
+    TO=['mitrc-active@mit.edu']
 
     SPREADSHEET_ID = '1QzHmzDO9T3sndExFtJ3Pyk_hzFJddGt1ahPIjQXZGCs'
     SPREADSHEET_LINK= 'https://docs.google.com/spreadsheets/d/{sid}/edit#gid={gid}'.format(sid=SPREADSHEET_ID, gid=GID)
@@ -130,7 +136,7 @@ def main():
     if row_ts.dayofweek == 2 or row_ts.dayofweek == 4:
         DAYS = {2:0,4:1} # Wednesday/Friday
         COL_END = 'F'
-        K_LENGTH = 14
+        K_LENGTH = 16
         K_START = 6
         SHEET = 'LTR Daily Schedule'
 
@@ -190,7 +196,7 @@ This is an auto-generated email. Contact ruizhi@mit.edu if you have trouble view
 
 MITRC is on Instagram: https://www.instagram.com/mitrowingclub/ and Facebook: https://www.facebook.com/mitrowingclub/ <br/><br/>
 
-Be friends outsides rowing? Join MITRC WhatsApp chat: https://chat.whatsapp.com/5Hvfdpxpcl87V3iARcMCWs
+Be friends outside rowing? Join MITRC WhatsApp chat: https://chat.whatsapp.com/5Hvfdpxpcl87V3iARcMCWs
 
 </body>
 </html>
@@ -230,7 +236,7 @@ This is an auto-generated email. Contact ruizhi@mit.edu if you have trouble view
 
 MITRC is on Instagram: https://www.instagram.com/mitrowingclub/ and Facebook: https://www.facebook.com/mitrowingclub/ <br/><br/>
 
-Be friends outsides rowing? Join MITRC WhatsApp chat: https://chat.whatsapp.com/5Hvfdpxpcl87V3iARcMCWs
+Be friends outside rowing? Join MITRC WhatsApp chat: https://chat.whatsapp.com/5Hvfdpxpcl87V3iARcMCWs
 
 </body>
 </html>
@@ -240,20 +246,20 @@ Be friends outsides rowing? Join MITRC WhatsApp chat: https://chat.whatsapp.com/
     friendly_date = '{day_name} {month_name} {day_number}'.format(day_name=row_ts.day_name(), month_name=row_ts.month_name(), day_number = row_ts.day)
 
     if row_ts.dayofweek == 2 or row_ts.dayofweek == 4:
-        message_text = template.format(sheet_url=sheet_url, table=tab, table_ltr=tab_ltr, style=stl, stl_ltr=stl_ltr, friendly_date=friendly_date, test_disclaimer='(this email is a test, pls ignore)' if args.TEST_MODE else '')
+        message_text = template.format(sheet_url=sheet_url, table=tab, table_ltr=tab_ltr, style=stl, stl_ltr=stl_ltr, friendly_date=friendly_date, test_disclaimer='(this email is a test, pls ignore)' if TEST_MODE else '')
     else:
-        message_text = template.format(sheet_url=sheet_url, table=tab, style=stl, friendly_date=friendly_date, test_disclaimer='(this email is a test, pls ignore)' if args.TEST_MODE else '')
+        message_text = template.format(sheet_url=sheet_url, table=tab, style=stl, friendly_date=friendly_date, test_disclaimer='(this email is a test, pls ignore)' if TEST_MODE else '')
 
     service = build('gmail', 'v1', http=creds.authorize(Http()))
     
     message = MIMEText(message_text, _subtype='html')
 
     #to_list = ['orm@mit.edu'] if args.TEST_MODE else (TO + ['mitrc.schedule@gmail.com'])
-    to_list = ['orm@mit.edu'] if args.TEST_MODE else (TO + ['ruizhi@mit.edu'])
+    to_list = ['orm@mit.edu'] if TEST_MODE else (TO + ['ruizhi@mit.edu'])
     message['to'] = ','.join(to_list)
     # message['bcc'] = 'mitrc.officers@mit.edu'
 
-    message['subject'] = '{is_ltr}[MITRC] Daily reminder for {friendly_date}{test_mode}'.format(friendly_date=friendly_date, is_ltr='(LTR) ' if args.LTR else '', test_mode=' (Test email)' if args.TEST_MODE else '')
+    message['subject'] = '{is_ltr}[MITRC] Daily reminder for {friendly_date}{test_mode}'.format(friendly_date=friendly_date, is_ltr='(LTR) ' if LTR else '', test_mode=' (Test email)' if TEST_MODE else '')
     ret = {'raw': "".join(map(chr, base64.urlsafe_b64encode(message.as_string().encode())))}
 
     try:
@@ -263,5 +269,17 @@ Be friends outsides rowing? Join MITRC WhatsApp chat: https://chat.whatsapp.com/
     except errors.HttpError as error:
         print('An error occurred: %s' % error)          
 
-if __name__ == '__main__':
-    main()
+
+next_start = datetime.datetime(2019, 4, 19, 16, 0, 0)
+while True:
+    dtn = datetime.datetime.now()
+
+    if dtn >= next_start:
+        next_start += datetime.timedelta(1)  # 1 day
+        print('Send out reminder!')
+        send_reminder()
+    else:
+        print("Time now:", dtn)
+        print("Next start:", next_start)
+
+    time.sleep(60)
