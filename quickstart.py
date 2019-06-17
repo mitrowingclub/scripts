@@ -91,10 +91,10 @@ def send_reminder():
     #     #TO=['mitrc-ltr@mit.edu','mitrc-active@mit.edu', 'glennbeau@comcast.net']
     #     GID = 0
     
-    #TO=['mitrc-active@mit.edu']
-    TO=['ruizhi@mit.edu']
+    TO=['mitrc-active@mit.edu']
+    #TO=['ruizhi@mit.edu']
     
-    SPREADSHEET_ID = '1QzHmzDO9T3sndExFtJ3Pyk_hzFJddGt1ahPIjQXZGCs'
+    SPREADSHEET_ID = '1yL8V9il2mUJPEoQyS_hzUBkoVe95V-B9_n9bf_nlHAI'
     SPREADSHEET_LINK= 'https://docs.google.com/spreadsheets/d/{sid}/edit#gid={gid}'.format(sid=SPREADSHEET_ID, gid=GID)
 
     def get_cell_range(ts):
@@ -111,7 +111,7 @@ def send_reminder():
         print('no need to send reminder right now: ', curr_ts)
         return 0
 
-    if row_ts.dayofweek == 2 or row_ts.dayofweek == 4:
+    if row_ts.dayofweek == 1 or row_ts.dayofweek == 3:
         LTR = True
     else:
         LTR = False
@@ -140,10 +140,10 @@ def send_reminder():
     stl,tab = render_table(df)
 
     if LTR:
-        DAYS = {2:0,4:1} # Wednesday/Friday
+        DAYS = {1:0,3:1} # Tuesday/Thursday
         COL_END = 'F'
         K_LENGTH = 16
-        K_START = 6
+        K_START = 7
         SHEET = 'LTR Daily Schedule'
 
         def get_cell_range(ts):
